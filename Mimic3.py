@@ -15,18 +15,26 @@ def threedigiticd(codes):
         icd9_list = []
         for code in codes:
             if code != 'nan':
-                icd9_list = ["".join(filter(str.isdigit, str(code)))[:3] for code in codes]
+                icd9_list = list(set(["".join(filter(str.isdigit, str(code)))[:3] for code in codes]))
         return icd9_list
                     
     else:
         return []
     
     
-Admissions = pd.read_csv("C:\\Users\\micha\\Documents\\Data science projects\\Mimic_project\\Mimic_datasets\\ADMISSIONS.csv")
-Diagnoses = pd.read_csv("C:\\Users\\micha\\Documents\\Data science projects\\Mimic_project\\Mimic_datasets\\DIAGNOSES_ICD.csv")
-Labs = pd.read_csv("C:\\Users\\micha\\Documents\\Data science projects\\Mimic_project\\Mimic_datasets\\LABEVENTS.csv")
-Patients = pd.read_csv("C:\\Users\\micha\\Documents\\Data science projects\\Mimic_project\\Mimic_datasets\\PATIENTS.csv")
+#Admissions = pd.read_csv("C:\\Users\\micha\\Documents\\Data science projects\\Mimic_project\\Mimic_datasets\\ADMISSIONS.csv")
+#Diagnoses = pd.read_csv("C:\\Users\\micha\\Documents\\Data science projects\\Mimic_project\\Mimic_datasets\\DIAGNOSES_ICD.csv")
+#Labs = pd.read_csv("C:\\Users\\micha\\Documents\\Data science projects\\Mimic_project\\Mimic_datasets\\LABEVENTS.csv")
+#Patients = pd.read_csv("C:\\Users\\micha\\Documents\\Data science projects\\Mimic_project\\Mimic_datasets\\PATIENTS.csv")
 #Prescriptions = pd.read_csv("C:\\Users\\micha\\Documents\\Data science projects\\Mimic_project\\Mimic_datasets\\PRESCRIPTIONS.csv")
+
+
+Admissions = pd.read_csv("./ADMISSIONS.csv")
+Diagnoses = pd.read_csv("./DIAGNOSES_ICD.csv")
+Labs = pd.read_csv("./LABEVENTS.csv")
+Patients = pd.read_csv("./PATIENTS.csv")
+#Prescriptions = pd.read_csv("./PRESCRIPTIONS.csv")
+
 
 Dataset = pd.DataFrame()
 Dataset['SUBJECT_ID'] = Patients['SUBJECT_ID']
@@ -45,5 +53,11 @@ Patient_Data = pd.merge(Admissions, Diagnoses, on=['SUBJECT_ID', "HADM_ID"], how
 Patient_Data = pd.merge(Dataset, Patient_Data, on=['SUBJECT_ID'], how = 'left')
 Patient_Data['ICD9_CODE'] = Patient_Data['ICD9_CODE'].apply(threedigiticd)
 
-print(Patient_Data.head(100))
+Labs = Labs.dropna()
+Labs['HADM_ID'] = Labs['HADM_ID'].astype(int)
+Labs = Labs.groupby(["SUBJECT_ID", "HADM_ID"]).agg({'ITEMID': list})
+Patient_Data = pd.merge(Patient_Data, Labs, on=['SUBJECT_ID', "HADM_ID"], how = 'left')
 
+RNN_Data = Patient_Data.groupby(['SUBJECT_ID']).agg({'HADM_ID': list, 'ICD9_CODE': list, "ITEMID": list})
+
+print(RNN_Data.head(10))
